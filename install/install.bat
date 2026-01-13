@@ -24,7 +24,7 @@ if errorlevel 1 goto error
 echo.
 echo ✅ Installation complete!
 cd ThreadCrawl
-echo ▶ Run with: python crawler.py
+echo ▶ Run with: cd ThreadCrawl && python crawler.py
 echo.
 
 pause
@@ -35,4 +35,5 @@ echo.
 echo ❌ Installation failed.
 pause
 exit /b 1
+
 
