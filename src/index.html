@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Crawled Sites</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    #controls {
+        max-width: 1000px;
+        margin: 20px auto;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+    }
+
+    input {
+        flex: 1;
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    select {
+        padding: 8px;
+    }
+
+    #sites {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    .site {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .site a {
+        font-weight: bold;
+        color: #0066cc;
+        text-decoration: none;
+        margin-bottom: 6px;
+    }
+
+    .site a:hover {
+        text-decoration: underline;
+    }
+
+    .description {
+        color: #444;
+        font-size: 14px;
+    }
+
+    .no-desc {
+        color: #888;
+        font-style: italic;
+    }
+
+    #pagination {
+        text-align: center;
+        margin: 20px;
+    }
+
+    button {
+        padding: 6px 12px;
+        margin: 0 5px;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>🕷 Crawled Sites</h1>
+
+<div id="controls">
+    <input id="search" placeholder="Search title, description, or URL">
+    <select id="pageSize">
+        <option value="20">20 / page</option>
+        <option value="50" selected>50 / page</option>
+        <option value="100">100 / page</option>
+    </select>
+</div>
+
+<div id="sites"></div>
+<div id="pagination"></div>
+
+<script>
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+
+fetch("results.json")
+    .then(r => r.json())
+    .then(data => {
+        allData = data;
+        filteredData = data;
+        render();
+    });
+
+function render() {
+    const sites = document.getElementById("sites");
+    sites.innerHTML = "";
+
+    const pageSize = parseInt(document.getElementById("pageSize").value);
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+
+    filteredData.slice(start, end).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "site";
+
+        div.innerHTML = `
+            <a href="${item.url}" target="_blank">${item.title || item.url}</a>
+            <div class="description">
+                ${item.description || '<span class="no-desc">No description</span>'}
+            </div>
+        `;
+        sites.appendChild(div);
+    });
+
+    renderPagination(pageSize);
+}
+
+function renderPagination(pageSize) {
+    const pages = Math.ceil(filteredData.length / pageSize);
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = "";
+
+    if (pages <= 1) return;
+
+    if (currentPage > 1) {
+        pagination.innerHTML += `<button onclick="changePage(${currentPage - 1})">Prev</button>`;
+    }
+
+    pagination.innerHTML += ` Page ${currentPage} of ${pages} `;
+
+    if (currentPage < pages) {
+        pagination.innerHTML += `<button onclick="changePage(${currentPage + 1})">Next</button>`;
+    }
+}
+
+function changePage(page) {
+    currentPage = page;
+    render();
+}
+
+document.getElementById("search").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    filteredData = allData.filter(item =>
+        (item.title || "").toLowerCase().includes(q) ||
+        (item.description || "").toLowerCase().includes(q) ||
+        item.url.toLowerCase().includes(q)
+    );
+    currentPage = 1;
+    render();
+});
+
+document.getElementById("pageSize").addEventListener("change", () => {
+    currentPage = 1;
+    render();
+});
+</script>
+
+</body>
+</html>
