@@ -14,7 +14,7 @@ import os
 
 # ---------------- CONFIG ----------------
 USER_AGENT = "ThreadCrawl/2.1.5 (+https://example.com/bot-info)"
-CRAWL_DELAY = 0.1
+CRAWL_DELAY = 0.1  # fixed delay, no slider
 MAX_PAGES_PER_SITE = 50
 OUTPUT_FILE = "src/results.json"
 MAX_THREADS = 50
@@ -75,20 +75,17 @@ def extract_metadata(html):
 def crawl_site(start_url, results, update_gui=None, log_func=None):
     rp = get_robot_parser(start_url)
     domain = urlparse(start_url).netloc
-
     visited = set()
     queue = [start_url]
 
     while queue and len(visited) < MAX_PAGES_PER_SITE:
         if stop_flag.is_set():
             break
-
         pause_flag.wait()
 
         url = queue.pop(0)
         if url in visited:
             continue
-
         if not rp.can_fetch(USER_AGENT, url):
             log_func and log_func(f"⛔ Blocked by robots.txt: {url}")
             continue
@@ -104,11 +101,7 @@ def crawl_site(start_url, results, update_gui=None, log_func=None):
         title, description = extract_metadata(response.text)
 
         with results_lock:
-            results.append({
-                "url": url,
-                "title": title,
-                "description": description
-            })
+            results.append({"url": url, "title": title, "description": description})
 
         update_gui and update_gui(url, len(results))
         log_func and log_func(f"✅ Crawled: {url}")
@@ -117,9 +110,8 @@ def crawl_site(start_url, results, update_gui=None, log_func=None):
         for link in soup.find_all("a", href=True):
             absolute = urljoin(url, link["href"])
             parsed = urlparse(absolute)
-            if parsed.scheme in ("http", "https") and parsed.netloc == domain:
-                if absolute not in visited:
-                    queue.append(absolute)
+            if parsed.scheme in ("http", "https") and parsed.netloc == domain and absolute not in visited:
+                queue.append(absolute)
 
         time.sleep(CRAWL_DELAY)
 
@@ -128,7 +120,7 @@ class CrawlerGUI:
     def __init__(self, root):
         self.root = root
         root.title("ThreadCrawler")
-        root.geometry("750x600")
+        root.geometry("700x550")
 
         self.results = []
         self.sites = []
@@ -138,31 +130,20 @@ class CrawlerGUI:
         self.web_host = None
         self.host_running = False
 
+        # Buttons
         tk.Button(root, text="Load Sites", command=self.load_sites).pack(pady=4)
-
         self.start_btn = tk.Button(root, text="Start Crawl", command=self.start_crawl, state="disabled")
         self.start_btn.pack(pady=4)
-
         self.pause_btn = tk.Button(root, text="Pause", command=self.pause_resume, state="disabled")
         self.pause_btn.pack(pady=4)
-
         self.stop_btn = tk.Button(root, text="Stop", command=self.stop_crawl, state="disabled")
         self.stop_btn.pack(pady=4)
-
-        tk.Label(root, text="Crawl Delay (seconds)").pack()
-        self.delay_slider = tk.Scale(
-            root, from_=0.0, to=5.0, resolution=0.1,
-            orient=tk.HORIZONTAL, command=self.update_delay
-        )
-        self.delay_slider.set(CRAWL_DELAY)
-        self.delay_slider.pack()
 
         self.host_btn = tk.Button(root, text="Start Web Host", command=self.toggle_host)
         self.host_btn.pack(pady=6)
 
         self.status = tk.Label(root, text="Status: Idle")
         self.status.pack()
-
         self.timer_label = tk.Label(root, text="Time: 0s")
         self.timer_label.pack()
 
@@ -171,10 +152,7 @@ class CrawlerGUI:
 
         self.update_timer()
 
-    def update_delay(self, val):
-        global CRAWL_DELAY
-        CRAWL_DELAY = float(val)
-
+    # ---------------- Host ----------------
     def toggle_host(self):
         if not self.host_running:
             self.web_host = WebHostThread()
@@ -188,6 +166,7 @@ class CrawlerGUI:
             self.host_btn.config(text="Start Web Host")
             self.log("🛑 Web host stopped")
 
+    # ---------------- Crawl GUI ----------------
     def load_sites(self):
         file = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
         if file:
