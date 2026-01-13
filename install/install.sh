@@ -19,5 +19,4 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 
 echo "✅ Installation complete!"
-cd ThreadCrawl
-echo "▶ Run with: python3 crawler.py"
+echo "▶ Run with: cd ThreadCrawl && python3 crawler.py"
